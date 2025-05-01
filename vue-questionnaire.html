@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self Assessment Questionnaire</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/papaparse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #3d5a80;
+            --secondary-color: #98c1d9;
+            --accent-color: #ee6c4d;
+            --light-color: #f7f9fb;
+            --dark-color: #293241;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--dark-color);
+            background-color: var(--light-color);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .app-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        
+        .progress-container {
+            margin-bottom: 25px;
+        }
+        
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            color: var(--dark-color);
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: var(--primary-color);
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+        
+        .theme-indicator {
+            background-color: var(--secondary-color);
+            color: var(--dark-color);
+            padding: 8px 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .question {
+            margin-bottom: 20px;
+        }
+        
+        .question-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--dark-color);
+        }
+        
+        .question-number {
+            font-weight: bold;
+            margin-right: 10px;
+            color: var(--primary-color);
+        }
+        
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .option {
+            position: relative;
+            background-color: #f5f7fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .option:hover {
+            border-color: var(--secondary-color);
+            background-color: #f0f7ff;
+        }
+        
+        .option.selected {
+            border-color: var(--primary-color);
+            background-color: rgba(61, 90, 128, 0.1);
+        }
+        
+        .option-identifier {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background-color: var(--secondary-color);
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            color: white;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .option.selected .option-identifier {
+            background-color: var(--primary-color);
+        }
+        
+        .tip-box {
+            background-color: rgba(152, 193, 217, 0.2);
+            border-left: 4px solid var(--secondary-color);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .tip-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+        }
+        
+        .visual {
+            background-color: rgba(238, 108, 77, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .visual img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+        
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+        }
+        
+        button:hover {
+            background-color: #2b4057;
+        }
+        
+        button:disabled {
+            background-color: #c5c5c5;
+            cursor: not-allowed;
+        }
+        
+        button.secondary {
+            background-color: var(--secondary-color);
+            color: var(--dark-color);
+        }
+        
+        button.secondary:hover {
+            background-color: #7eaecb;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark-color);
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease;
+        }
+        
+        input:focus, textarea:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+        
+        .result-section {
+            margin-top: 20px;
+        }
+        
+        .theme-score {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background-color: #f5f7fa;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .theme-score-bar {
+            height: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            flex-grow: 1;
+            margin: 0 15px;
+        }
+        
+        .theme-score-fill {
+            height: 100%;
+            background-color: var(--primary-color);
+            border-radius: 5px;
+        }
+        
+        .score-label {
+            font-weight: 600;
+            min-width: 50px;
+            text-align: right;
+        }
+        
+        .theme-name {
+            min-width: 200px;
+            font-weight: 600;
+        }
+        
+        .overall-score {
+            text-align: center;
+            padding: 20px;
+            margin-top: 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 10px;
+        }
+        
+        .score-number {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .thank-you {
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .thank-you h2 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary-color);
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.3s;
+        }
+        
+        .fade-enter-from, .fade-leave-to {
+            opacity: 0;
+        }
+        
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .app-container {
+                padding: 15px;
+            }
+            
+            .card {
+                padding: 15px;
+            }
+            
+            .theme-score {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .theme-name {
+                margin-bottom: 10px;
+            }
+            
+            .theme-score-bar {
+                width: 100%;
+                margin: 10px 0;
+            }
+            
+            .score-label {
+                align-self: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="app-container">
+        <header>
+            <h1>{{ title }}</h1>
+        </header>
+        
+        <div v-if="loading" class="loading">
+            <div class="spinner"></div>
+        </div>
+        
+        <div v-else>
+            <!-- Progress bar -->
+            <div class="progress-container" v-if="currentStep < totalSteps">
+                <div class="progress-text">
+                    <span>Question {{ currentQuestionNumber }} of {{ totalQuestions }}</span>
+                    <span>{{ Math.round((currentQuestionNumber / totalQuestions) * 100) }}% Complete</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" :style="{ width: (currentQuestionNumber / totalQuestions) * 100 + '%' }"></div>
+                </div>
+            </div>
+            
+            <!-- Questionnaire sections -->
+            <div v-if="currentStep < totalSteps - 1">
+                <!-- Theme indicator -->
+                <div class="theme-indicator" v-if="currentQuestion">
+                    <span>{{ currentQuestion.theme }}</span>
+                </div>
+                
+                <!-- Question card -->
+                <div class="card" v-if="currentQuestion">
+                    <div class="question">
+                        <div class="question-text">
+                            <span class="question-number">{{ currentQuestion.number }}.</span>
+                            {{ currentQuestion.text }}
+                        </div>
+                        
+                        <div class="options">
+                            <div v-for="option in currentQuestion.options" 
+                                 :key="option.id" 
+                                 class="option"
+                                 :class="{ selected: userAnswers[currentQuestion.number] === option.id }"
+                                 @click="selectOption(currentQuestion.number, option.id)">
+                                <span class="option-identifier">{{ option.id }}</span>
+                                {{ option.text }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <div class="tip-title">TIP</div>
+                        <p>Consider your organization's documented processes and consistent practices when answering this question.</p>
+                    </div>
+                    
+                    <div class="visual">
+                        <img :src="getVisualForQuestion(currentQuestion.number)" alt="Question visual">
+                    </div>
+                    
+                    <div class="navigation">
+                        <button @click="prevQuestion" :disabled="currentQuestionIndex === 0">Previous</button>
+                        <button @click="nextQuestion" :disabled="!userAnswers[currentQuestion.number]">Next</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- User information form -->
+            <div v-else-if="currentStep === totalSteps - 1">
+                <div class="card">
+                    <h2>Your Information</h2>
+                    <p>Please provide your contact details to complete the assessment.</p>
+                    
+                    <div class="form-group">
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" v-model="userInfo.name" placeholder="Enter your full name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" v-model="userInfo.email" placeholder="Enter your email address">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="organization">Organization Name</label>
+                        <input type="text" id="organization" v-model="userInfo.organization" placeholder="Enter your organization name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="role">Your Role</label>
+                        <input type="text" id="role" v-model="userInfo.role" placeholder="Enter your role in the organization">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="comments">Additional Comments</label>
+                        <textarea id="comments" v-model="userInfo.comments" rows="4" placeholder="Any additional comments or context"></textarea>
+                    </div>
+                    
+                    <div class="navigation">
+                        <button @click="prevQuestion">Previous</button>
+                        <button @click="submitAssessment" :disabled="!isUserInfoValid">Submit Assessment</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Results page -->
+            <div v-else-if="currentStep === totalSteps">
+                <div class="card">
+                    <h2>Assessment Results</h2>
+                    
+                    <div class="overall-score">
+                        <h3>Overall Score</h3>
+                        <div class="score-number">{{ calculateOverallPercentage() }}%</div>
+                        <p>{{ getScoreMessage() }}</p>
+                    </div>
+                    
+                    <div class="result-section">
+                        <h3>Scores by Theme</h3>
+                        
+                        <div v-for="theme in themes" :key="theme.name" class="theme-score">
+                            <div class="theme-name">{{ theme.name }}</div>
+                            <div class="theme-score-bar">
+                                <div class="theme-score-fill" :style="{ width: calculateThemePercentage(theme.name) + '%' }"></div>
+                            </div>
+                            <div class="score-label">{{ calculateThemePercentage(theme.name) }}%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="navigation">
+                        <button @click="restartAssessment">Start New Assessment</button>
+                        <button @click="exportResults" class="secondary">Export Results</button>
+                    </div>
+                </div>
+                
+                <div class="thank-you">
+                    <h2>Thank You for Completing the Assessment!</h2>
+                    <p>Your responses have been recorded and sent to Google Sheets.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+        
+        createApp({
+            setup() {
+                // App state
+                const loading = ref(true);
+                const title = ref("Self Assessment Questionnaire");
+                const currentStep = ref(0);
+                const totalSteps = ref(3); // Questions + User Info + Results
+                const themes = ref([]);
+                const questions = ref([]);
+                const currentQuestionIndex = ref(0);
+                const userAnswers = ref({});
+                const userInfo = ref({
+                    name: "",
+                    email: "",
+                    organization: "",
+                    role: "",
+                    comments: ""
+                });
+                const allQuestions = ref([]);
+                
+                // Computed properties
+                const currentQuestion = computed(() => {
+                    if (questions.value.length === 0) return null;
+                    return questions.value[currentQuestionIndex.value];
+                });
+                
+                const currentQuestionNumber = computed(() => {
+                    if (!currentQuestion.value) return 0;
+                    return currentQuestion.value.number;
+                });
+                
+                const totalQuestions = computed(() => {
+                    return allQuestions.value.length;
+                });
+                
+                const isUserInfoValid = computed(() => {
+                    return userInfo.value.name && userInfo.value.email && userInfo.value.organization;
+                });
+                
+                // Load questionnaire data
+                onMounted(async () => {
+                    try {
+                        await loadQuestionnaireData();
+                    } catch (error) {
+                        console.error("Error loading questionnaire data:", error);
+                    } finally {
+                        loading.value = false;
+                    }
+                });
+                
+                // Functions
+                async function loadQuestionnaireData() {
+                    // In a real app, this would fetch from an API or file
+                    // For this example, we'll use hardcoded data based on the Excel file
+                    
+                    // Sample questionnaire structure
+                    const questionnaire = {
+                        title: "Fundraising Compliance Self-Assessment",
+                        themes: [
+                            {
+                                name: "Authorisation & Compliance",
+                                questions: [
+                                    {
+                                        theme: "Authorisation & Compliance",
+                                        number: 1,
+                                        text: "Does the organisation obtain necessary approvals/permits (e.g., Police permits, LHDN approvals) before commencing fundraising activities?",
+                                        options: [
+                                            { id: "A", text: "Yes, always obtained well in advance; process clear & documented.", score: 3 },
+                                            { id: "B", text: "Yes, usually obtained before commencement; minor delays but compliant.", score: 2 },
+                                            { id: "C", text: "Sometimes obtained late or process unclear/inconsistent.", score: 1 },
+                                            { id: "D", text: "No, often not sought or obtained post-activity / Unaware of requirements.", score: 0 }
+                                        ]
+                                    },
+                                    {
+                                        theme: "Authorisation & Compliance",
+                                        number: 2,
+                                        text: "Does the organisation ensure it meets eligibility requirements before applying for permits, licenses, or specific statuses (e.g., S.45(6))?",
+                                        options: [
+                                            { id: "A", text: "Yes, eligibility always confirmed systematically before application.", score: 2 },
+                                            { id: "B", text: "Usually confirmed, occasional oversight or assumptions made.", score: 1 },
+                                            { id: "C", text: "Rarely confirmed systematically / Eligibility issues often found post-application.", score: 0 },
+                                            { id: "D", text: "Not Applicable (No such applications made).", score: 0 }
+                                        ]
+                                    },
+                                    {
+                                        theme: "Authorisation & Compliance",
+                                        number: 3,
+                                        text: "Are applications for permits, grants, or specific statuses submitted with clear, accurate, and complete information?",
+                                        options: [
+                                            { id: "A", text: "Yes, consistently high quality, clear, accurate, and complete.", score: 3 },
+                                            { id: "B", text: "Generally adequate, most key information included, minor clarifications needed.", score: 2 },
+                                            { id: "C", text: "Often lack clarity or completeness, requiring significant follow-up.", score: 1 },
+                                            { id: "D", text: "Poor quality, key information missing / Not Applicable.", score: 0 }
+                                        ]
+                                    },
+                                    {
+                                        theme: "Authorisation & Compliance",
+                                        number: 4,
+                                        text: "Does the organisation consistently use correct application procedures/forms (e.g., LHDN, Police) & pay correct fees?",
+                                        options: [
+                                            { id: "A", text: "Yes, procedures always followed correctly, correct forms/fees used.", score: 2 },
+                                            { id: "B", text: "Mostly correct, occasional minor errors in procedure, form, or fee.", score: 1 },
+                                            { id: "C", text: "Frequent errors in procedure, form, or fee / Unaware of correct process.", score: 0 },
+                                            { id: "D", text: "Not Applicable (No such submissions made).", score: 0 }
+                                        ]
+                                    },
+                                    {
+                                        theme: "Authorisation & Compliance",
+                                        number: 5,
+                                        text: "If holding tax-exempt status (e.g., S.44(6) ITA 1967), does the organisation understand & comply with all LHDN conditions?",
+                                        options: [
+                                            { id: "A", text: "Yes, conditions fully understood, documented, and consistently complied with.", score: 2 },
+                                            { id: "B", text: "Generally understood and complied with, some conditions less clear/monitored.", score: 1 },
+                                            { id: "C", text: "Lack of clarity on conditions / Compliance gaps exist / Not monitored.", score: 0 },
+                                            { id: "D", text: "Not Applicable (Not tax-exempt).", score: 0 }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                name: "Planning & Documentation",
+                                questions: [
+                                    {
+                                        theme: "Planning & Documentation",
+                                        number: 6,
+                                        text: "Are up-to-date copies of essential documents (Constitution/Rules, Reg docs, licenses) readily available?",
+                                        options: [
+                                            { id: "A", text: "Yes, all key documents are current and readily accessible.", score: 2 },
+                                            { id: "B", text: "Most are available, some may need locating or updating.", score: 1 },
+                                            { id: "C", text: "Significant documents are outdated or difficult to locate.", score: 0 }
+                                        ]
+                                    },
+                                    {
+                                        theme: "Planning & Documentation",
+                                        number: 7,
+                                        text: "Is there a documented plan for significant fundraising activities (objectives, methods, audience, procedures)?",
+                                        options: [
+                                            { id: "A", text: "Yes, comprehensive, documented plan exists and is followed/updated.", score: 3 },
+                                            { id: "B", text: "Basic plan exists, covers key areas but lacks detail or regular review.", score: 2 },
+                                            { id: "C", text: "Informal planning only / Plans lack key elements.", score: 1 },
+                                            { id: "D", text: "No documented plan for fundraising activities.", score: 0 }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    };
+
+                    // Set the title from the questionnaire
+                    title.value = questionnaire.title;
+                    
+                    // Set the themes and flatten all questions into a single array
+                    themes.value = questionnaire.themes;
+                    
+                    // Collect all questions into a flat array
+                    const allQuestionsArray = [];
+                    questionnaire.themes.forEach(theme => {
+                        theme.questions.forEach(question => {
+                            allQuestionsArray.push(question);
+                        });
+                    });
+                    
+                    // Sort questions by number
+                    allQuestionsArray.sort((a, b) => a.number - b.number);
+                    allQuestions.value = allQuestionsArray;
+                    
+                    // Set the questions array to all questions
+                    questions.value = allQuestionsArray;
+                    
+                    // Set total steps based on the number of steps (questions + user info + results)
+                    totalSteps.value = 3; // Questions + User Info + Results
+                }
+                
+                function getVisualForQuestion(questionNumber) {
+                    // In a real app, you would have specific visuals for each question
+                    // Here we're using placeholder images
+                    return `/api/placeholder/400/200?text=Visual+for+Question+${questionNumber}`;
+                }
+                
+                function selectOption(questionNumber, optionId) {
+                    userAnswers.value[questionNumber] = optionId;
+                }
+                
+                function nextQuestion() {
+                    if (currentStep.value < totalSteps.value - 1) {
+                        if (currentQuestionIndex.value < questions.value.length - 1) {
+                            currentQuestionIndex.value++;
+                        } else {
+                            currentStep.value++;
+                        }
+                    }
+                }
+                
+                function prevQuestion() {
+                    if (currentStep.value > 0) {
+                        if (currentStep.value === totalSteps.value - 1 && currentQuestionIndex.value === questions.value.length - 1) {
+                            currentStep.value--;
+                        } else if (currentQuestionIndex.value > 0) {
+                            currentQuestionIndex.value--;
+                        } else {
+                            currentStep.value--;
+                        }
+                    }
+                }
+                
+                function submitAssessment() {
+                    // In a real app, this would send data to Google Sheets
+                    console.log("Submitting assessment...");
+                    console.log("User answers:", userAnswers.value);
+                    console.log("User info:", userInfo.value);
+                    
+                    // Move to results page
+                    currentStep.value = totalSteps.value;
+                    
+                    // In a real implementation, this is where you'd integrate with Google Sheets
+                    sendToGoogleSheets();
+                }
+                
+                function sendToGoogleSheets() {
+                    // Simulating sending to Google Sheets
+                    console.log("Data sent to Google Sheets");
+                    
+                    // In a real implementation, you would:
+                    // 1. Format the data for Google Sheets
+                    // 2. Make an API call to a Google Apps Script web app
+                    // 3. The script would process the data and add it to your sheet
+                }
+                
+                function calculateScoreForTheme(themeName) {
+                    let themeScore = 0;
+                    let maxThemeScore = 0;
+                    
+                    // Find the theme
+                    const theme = themes.value.find(t => t.name === themeName);
+                    if (!theme) return { score: 0, maxScore: 0 };
+                    
+                    // Calculate score for each question in the theme
+                    theme.questions.forEach(question => {
+                        const selectedOptionId = userAnswers.value[question.number];
+                        if (selectedOptionId) {
+                            const selectedOption = question.options.find(opt => opt.id === selectedOptionId);
+                            if (selectedOption) {
+                                themeScore += selectedOption.score;
+                            }
+                        }
+                        
+                        // Calculate max possible score for this question
+                        const maxQuestionScore = Math.max(...question.options.map(opt => opt.score));
+                        maxThemeScore += maxQuestionScore;
+                    });
+                    
+                    return { score: themeScore, maxScore: maxThemeScore };
+                }
+                
+                function calculateThemePercentage(themeName) {
+                    const { score, maxScore } = calculateScoreForTheme(themeName);
+                    if (maxScore === 0) return 0;
+                    return Math.round((score / maxScore) * 100);
+                }
+                
+                function calculateOverallScore() {
+                    let totalScore = 0;
+                    let maxPossibleScore = 0;
+                    
+                    themes.value.forEach(theme => {
+                        const { score, maxScore } = calculateScoreForTheme(theme.name);
+                        totalScore += score;
+                        maxPossibleScore += maxScore;
+                    });
+                    
+                    return { score: totalScore, maxScore: maxPossibleScore };
+                }
+                
+                function calculateOverallPercentage() {
+                    const { score, maxScore } = calculateOverallScore();
+                    if (maxScore === 0) return 0;
+                    return Math.round((score / maxScore) * 100);
+                }
+                
+                function getScoreMessage() {
+                    const percentage = calculateOverallPercentage();
+                    
+                    if (percentage >= 90) {
+                        return "Excellent! Your organization has strong fundraising compliance practices.";
+                    } else if (percentage >= 75) {
+                        return "Good. Your organization has solid compliance practices with some room for improvement.";
+                    } else if (percentage >= 50) {
+                        return "Fair. Your organization meets basic compliance requirements but has significant room for improvement.";
+                    } else {
+                        return "Needs improvement. Your organization should review and strengthen its fundraising compliance practices.";
+                    }
+                }
+                
+                function restartAssessment() {
+                    currentStep.value = 0;
+                    currentQuestionIndex.value = 0;
+                    userAnswers.value = {};
+                    userInfo.value = {
+                        name: "",
+                        email: "",
+                        organization: "",
+                        role: "",
+                        comments: ""
+                    };
+                }
+                
+                function exportResults() {
+                    // In a real app, this would generate a PDF or CSV of results
+                    console.log("Exporting results...");
+                    
+                    // Simulate download delay
+                    alert("Results exported successfully!");
+                }
+                
+                return {
+                    loading,
+                    title,
+                    currentStep,
+                    totalSteps,
+                    themes,
+                    questions,
+                    currentQuestionIndex,
+                    userAnswers,
+                    userInfo,
+                    allQuestions,
+                    currentQuestion,
+                    currentQuestionNumber,
+                    totalQuestions,
+                    isUserInfoValid,
+                    getVisualForQuestion,
+                    selectOption,
+                    nextQuestion,
+                    prevQuestion,
+                    submitAssessment,
+                    calculateThemePercentage,
+                    calculateOverallPercentage,
+                    getScoreMessage,
+                    restartAssessment,
+                    exportResults
+                };
